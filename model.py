@@ -19,7 +19,7 @@ from tensorflow.python.keras.callbacks import BaseLogger, ModelCheckpoint, Early
 from tensorflow.python.keras import backend as K
 
 # Input and output directories
-data_dir = os.getcwd() + "/data/data/reverse/"
+data_dir = os.getcwd() + "/data/"
 output_dir = os.getcwd() + "/out/"
 log_dir = os.getcwd() + "/logs/"
 
