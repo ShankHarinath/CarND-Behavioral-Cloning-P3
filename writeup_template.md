@@ -15,115 +15,104 @@ The goals / steps of this project are the following:
 * Test that the model successfully drives around track one without leaving the road
 * Summarize the results with a written report
 
+### Model Architecture and Training Strategy
 
-[//]: # (Image References)
+#### 1. An appropriate model architecture has been employed
 
-[image1]: ./examples/placeholder.png "Model Visualization"
-[image2]: ./examples/placeholder.png "Grayscaling"
-[image3]: ./examples/placeholder_small.png "Recovery Image"
-[image4]: ./examples/placeholder_small.png "Recovery Image"
-[image5]: ./examples/placeholder_small.png "Recovery Image"
-[image6]: ./examples/placeholder_small.png "Normal Image"
-[image7]: ./examples/placeholder_small.png "Flipped Image"
+I have used keras native to Tensorflow 1.4.
+I have based my model on the paper "End to End Learning for Self-Driving Cars", with some minor enhancements.
 
-## Rubric Points
-###Here I will consider the [rubric points](https://review.udacity.com/#!/rubrics/432/view) individually and describe how I addressed each point in my implementation.  
+- I added an additional 1 x 1 conv layer on the top after cropping with 3 filters (model.py line 93). Intuition behind this is to let the model figure out the required color scheme to use rather than converting it to greyscale or RGB or HSV etc. This resulted in lower validation and test losses.
+- I have use LeackyRELU instead of RELU activation for all the dense layers, this resulted in lower validation loss. (model.py lines 105-111). Intuition was to smoothen the values as LeackyRELU gives more a smooth activation. The steering angles were jumping huge values, creating jerky movements during the drive. LeackyRELU addressed the issue to some extent.
 
----
-###Files Submitted & Code Quality
+<pre>
+_________________________________________________________________
+Layer (type)                 Output Shape              Param #   
+=================================================================
+lambda_1 (Lambda)            (None, 160, 320, 3)       0         
+_________________________________________________________________
+cropping2d_1 (Cropping2D)    (None, 65, 320, 3)        0         
+_________________________________________________________________
+conv2d_1 (Conv2D)            (None, 65, 320, 3)        12        
+_________________________________________________________________
+conv2d_2 (Conv2D)            (None, 31, 158, 24)       1824      
+_________________________________________________________________
+conv2d_3 (Conv2D)            (None, 14, 77, 36)        21636     
+_________________________________________________________________
+conv2d_4 (Conv2D)            (None, 5, 37, 48)         43248     
+_________________________________________________________________
+conv2d_5 (Conv2D)            (None, 3, 35, 64)         27712     
+_________________________________________________________________
+conv2d_6 (Conv2D)            (None, 1, 33, 64)         36928     
+_________________________________________________________________
+flatten_1 (Flatten)          (None, 2112)              0         
+_________________________________________________________________
+dense_1 (Dense)              (None, 100)               211300    
+_________________________________________________________________
+leaky_re_lu_1 (LeakyReLU)    (None, 100)               0         
+_________________________________________________________________
+dense_2 (Dense)              (None, 50)                5050      
+_________________________________________________________________
+leaky_re_lu_2 (LeakyReLU)    (None, 50)                0         
+_________________________________________________________________
+dense_3 (Dense)              (None, 10)                510       
+_________________________________________________________________
+dense_4 (Dense)              (None, 1)                 11        
+=================================================================
+Total params: 348,231
+Trainable params: 348,231
+Non-trainable params: 0
+_________________________________________________________________
+</pre>
 
-####1. Submission includes all required files and can be used to run the simulator in autonomous mode
 
-My project includes the following files:
-* model.py containing the script to create and train the model
-* drive.py for driving the car in autonomous mode
-* model.h5 containing a trained convolution neural network 
-* writeup_report.md or writeup_report.pdf summarizing the results
-
-####2. Submission includes functional code
-Using the Udacity provided simulator and my drive.py file, the car can be driven autonomously around the track by executing 
-```sh
-python drive.py model.h5
-```
-
-####3. Submission code is usable and readable
-
-The model.py file contains the code for training and saving the convolution neural network. The file shows the pipeline I used for training and validating the model, and it contains comments to explain how the code works.
-
-###Model Architecture and Training Strategy
-
-####1. An appropriate model architecture has been employed
-
-My model consists of a convolution neural network with 3x3 filter sizes and depths between 32 and 128 (model.py lines 18-24) 
-
-The model includes RELU layers to introduce nonlinearity (code line 20), and the data is normalized in the model using a Keras lambda layer (code line 18). 
-
-####2. Attempts to reduce overfitting in the model
-
-The model contains dropout layers in order to reduce overfitting (model.py lines 21). 
+#### 2. Attempts to reduce overfitting in the model
 
 The model was trained and validated on different data sets to ensure that the model was not overfitting (code line 10-16). The model was tested by running it through the simulator and ensuring that the vehicle could stay on the track.
 
-####3. Model parameter tuning
+#### 3. Model parameter tuning
 
-The model used an adam optimizer, so the learning rate was not tuned manually (model.py line 25).
+The model used an adam optimizer. I tried various learning rates, but the default works the best in this case.
 
-####4. Appropriate training data
+#### 4. Appropriate training data
 
-Training data was chosen to keep the vehicle driving on the road. I used a combination of center lane driving, recovering from the left and right sides of the road ... 
+Training data was chosen to keep the vehicle driving on the road. I used a combination of center lane driving (2 laps) & driving the opposite direction (1 lap). I did not record data for the recovering from the sides.
 
 For details about how I created the training data, see the next section. 
 
-###Model Architecture and Training Strategy
+#### 5. Solution Design Approach
 
-####1. Solution Design Approach
+The overall strategy for deriving a model architecture was to get a smooth steering angle with each image.
 
-The overall strategy for deriving a model architecture was to ...
+My first model was to use a set of conv layers followed by dropouts and batch normalizations layers. The model loss was very high but it did converge fast and overfit (high loss on the validation set). The model did well on the roads where there were lanes, but not so much on the roads with no lanes (yellow or white markings).
 
-My first step was to use a convolution neural network model similar to the ... I thought this model might be appropriate because ...
+My second model is based on the paper "End to End Learning for Self-Driving Cars", with some minor enhancements.
 
-In order to gauge how well the model was working, I split my image and steering angle data into a training and validation set. I found that my first model had a low mean squared error on the training set but a high mean squared error on the validation set. This implied that the model was overfitting. 
+In order to gauge how well the model was working, I split my image and steering angle data into a training and validation set. 
 
-To combat the overfitting, I modified the model so that ...
-
-Then I ... 
-
-The final step was to run the simulator to see how well the car was driving around track one. There were a few spots where the vehicle fell off the track... to improve the driving behavior in these cases, I ....
+The final step was to run the simulator to see how well the car was driving around track one. During the turns, the car steering was little jerky. I used LeackyRELU instead of RELU. This resulted in smooth value angle predictions. 
 
 At the end of the process, the vehicle is able to drive autonomously around the track without leaving the road.
 
-####2. Final Model Architecture
-
-The final model architecture (model.py lines 18-24) consisted of a convolution neural network with the following layers and layer sizes ...
-
-Here is a visualization of the architecture (note: visualizing the architecture is optional according to the project rubric)
-
-![alt text][image1]
-
-####3. Creation of the Training Set & Training Process
+#### 6. Creation of the Training Set & Training Process
 
 To capture good driving behavior, I first recorded two laps on track one using center lane driving. Here is an example image of center lane driving:
 
-![alt text][image2]
+![Center lane driving](https://raw.githubusercontent.com/ShankHarinath/CarND-Behavioral-Cloning-P3/master/images/Actual.jpg)
 
-I then recorded the vehicle recovering from the left side and right sides of the road back to center so that the vehicle would learn to .... These images show what a recovery looks like starting from ... :
+I then recorded the vehicle by driving in the opposite direction for 1 lap. Here is an example image:
 
-![alt text][image3]
-![alt text][image4]
-![alt text][image5]
+![Center lane driving](https://raw.githubusercontent.com/ShankHarinath/CarND-Behavioral-Cloning-P3/master/images/Reverse.jpg)
 
-Then I repeated this process on track two in order to get more data points.
+I did not record the vehicle recovering from the left side and right sides of the road back to center.
 
-To augment the data sat, I also flipped images and angles thinking that this would ... For example, here is an image that has then been flipped:
+To augment the dataset, I randomly flipped images, used the left and the right camera with 0.25 as angle correction.
 
-![alt text][image6]
-![alt text][image7]
+After the collection process, I had 13500 number of data points. I then preprocessed this data by 
+- converting images from BGR to RGB
+- normalizing the images
+- cropping the image to only capture the road
 
-Etc ....
+I finally randomly shuffled the data set and put 20% of the data into a validation set. 
 
-After the collection process, I had X number of data points. I then preprocessed this data by ...
-
-
-I finally randomly shuffled the data set and put Y% of the data into a validation set. 
-
-I used this training data for training the model. The validation set helped determine if the model was over or under fitting. The ideal number of epochs was Z as evidenced by ... I used an adam optimizer so that manually training the learning rate wasn't necessary.
+I used this training data for training the model. The validation set helped determine if the model was over or under fitting. The ideal number of epochs was ~20, I had used early stopping, which would stop training around 20 epochs based on the validation loss. I used an adam optimizer, tried custom learning rate, but default works best.
